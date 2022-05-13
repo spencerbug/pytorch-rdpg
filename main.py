@@ -9,7 +9,6 @@ from evaluator import Evaluator
 from rdpg import RDPG
 from util import *
 
-gym.undo_logger_setup()
 
 if __name__ == "__main__":
 
@@ -52,7 +51,7 @@ if __name__ == "__main__":
 
     nb_states = env.observation_space.shape[0]
     nb_actions = env.action_space.shape[0]
-
+    torch.autograd.set_detect_anomaly(True)
     rdpg = RDPG(env, nb_states, nb_actions, args)
     if args.mode == 'train':
         rdpg.train(args.train_iter, args.checkpoint, args.debug)

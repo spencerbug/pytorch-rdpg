@@ -3,6 +3,7 @@ import argparse
 from copy import deepcopy
 import torch
 from torch.optim import Adam
+from torch import from_numpy as to_tensor
 import torch.nn.functional as F
 import gym
 
@@ -121,31 +122,27 @@ class RDPG(object):
         policy_loss_total = 0
         value_loss_total = 0
         for t in range(len(experiences) - 1): # iterate over episodes
-            target_cx = Variable(torch.zeros(self.batch_size, 50)).type(FLOAT)
-            target_hx = Variable(torch.zeros(self.batch_size, 50)).type(FLOAT)
+            target_cx = torch.zeros(self.batch_size, 50).type(FLOAT)
+            target_hx = torch.zeros(self.batch_size, 50).type(FLOAT)
 
-            cx = Variable(torch.zeros(self.batch_size, 50)).type(FLOAT)
-            hx = Variable(torch.zeros(self.batch_size, 50)).type(FLOAT)
+            cx = torch.zeros(self.batch_size, 50).type(FLOAT)
+            hx = torch.zeros(self.batch_size, 50).type(FLOAT)
 
             # we first get the data out of the sampled experience
-            state0 = np.stack((trajectory.state0 for trajectory in experiences[t]))
+            state0 = to_tensor(np.stack([trajectory.state0 for trajectory in experiences[t]])).type(FLOAT)
             # action = np.expand_dims(np.stack((trajectory.action for trajectory in experiences[t])), axis=1)
-            action = np.stack((trajectory.action for trajectory in experiences[t]))
-            reward = np.expand_dims(np.stack((trajectory.reward for trajectory in experiences[t])), axis=1)
+            action = to_tensor(np.stack([trajectory.action for trajectory in experiences[t]])).type(FLOAT)
+            reward = to_tensor(np.expand_dims(np.stack([trajectory.reward for trajectory in experiences[t]]), axis=1)).type(FLOAT)
             # reward = np.stack((trajectory.reward for trajectory in experiences[t]))
-            state1 = np.stack((trajectory.state0 for trajectory in experiences[t+1]))
+            state1 = to_tensor(np.stack([trajectory.state0 for trajectory in experiences[t+1]])).type(FLOAT)
 
-            target_action, (target_hx, target_cx) = self.agent.actor_target(to_tensor(state1, volatile=True), (target_hx, target_cx))
-            next_q_value = self.agent.critic_target([
-                to_tensor(state1, volatile=True),
-                target_action
-            ])
-            next_q_value.volatile=False
+            target_action, (target_hx, target_cx) = self.agent.actor_target(state1, (target_hx, target_cx))
+            next_q_value = self.agent.critic_target([state1, target_action])
 
-            target_q = to_tensor(reward) + self.discount*next_q_value
+            target_q = reward + self.discount*next_q_value
 
             # Critic update
-            current_q = self.agent.critic([ to_tensor(state0), to_tensor(action) ])
+            current_q = self.agent.critic([ state0, action ])
 
             # value_loss = criterion(q_batch, target_q_batch)
             value_loss = F.smooth_l1_loss(current_q, target_q)
@@ -153,11 +150,8 @@ class RDPG(object):
             value_loss_total += value_loss
 
             # Actor update
-            action, (hx, cx) = self.agent.actor(to_tensor(state0), (hx, cx))
-            policy_loss = -self.agent.critic([
-                to_tensor(state0),
-                action
-            ])
+            action, (hx, cx) = self.agent.actor(state0, (hx, cx))
+            policy_loss = -self.agent.critic([ state0, action ])
             policy_loss /= len(experiences) # divide by trajectory length
             policy_loss_total += policy_loss.mean()
 

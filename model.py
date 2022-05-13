@@ -5,10 +5,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 from util import *
 
-def fanin_init(size, fanin=None):
-    fanin = fanin or size[0]
+def fanin_init(layer:nn.Linear):
+    fanin = layer.weight.size()[0]
     v = 1. / np.sqrt(fanin)
-    return torch.Tensor(size).uniform_(-v, v)
+    layer.weight.uniform_(-v, v)
 
 class Actor(nn.Module):
     def __init__(self, nb_states, nb_actions, init_w=3e-3):
@@ -21,21 +21,22 @@ class Actor(nn.Module):
         self.tanh = nn.Tanh()
         self.init_weights(init_w)
 
-        self.cx = Variable(torch.zeros(1, 50)).type(FLOAT)
-        self.hx = Variable(torch.zeros(1, 50)).type(FLOAT)
+        self.cx = torch.zeros(1, 50)
+        self.hx = torch.zeros(1, 50)
     
     def init_weights(self, init_w):
-        self.fc1.weight.data = fanin_init(self.fc1.weight.data.size())
-        self.fc2.weight.data = fanin_init(self.fc2.weight.data.size())
-        self.fc3.weight.data.uniform_(-init_w, init_w)
+        with torch.no_grad():
+            fanin_init(self.fc1)
+            fanin_init(self.fc2)
+            self.fc3.weight.uniform_(-init_w, init_w)
 
     def reset_lstm_hidden_state(self, done=True):
         if done == True:
-            self.cx = Variable(torch.zeros(1, 50)).type(FLOAT)
-            self.hx = Variable(torch.zeros(1, 50)).type(FLOAT)
+            self.cx = torch.zeros(1, 50)
+            self.hx = torch.zeros(1, 50)
         else:
-            self.cx = Variable(self.cx.data).type(FLOAT)
-            self.hx = Variable(self.hx.data).type(FLOAT)
+            self.cx = self.cx.data
+            self.hx = self.hx.data
 
     def forward(self, x, hidden_states=None):
         x = self.relu(self.fc1(x))
@@ -63,9 +64,10 @@ class Critic(nn.Module):
         self.init_weights(init_w)
     
     def init_weights(self, init_w):
-        self.fc1.weight.data = fanin_init(self.fc1.weight.data.size())
-        self.fc2.weight.data = fanin_init(self.fc2.weight.data.size())
-        self.fc3.weight.data.uniform_(-init_w, init_w)
+        with torch.no_grad():
+            fanin_init(self.fc1)
+            fanin_init(self.fc2)
+            self.fc3.weight.uniform_(-init_w, init_w)
     
     def forward(self, xs):
         x, a = xs

@@ -292,7 +292,7 @@ class EpisodicMemory(Memory):
         T = len(mem)
         if T > 0:
             # Take a random subset of trajectory if maxlen specified, otherwise return full trajectory
-            if maxlen > 0 and T > maxlen + 1:
+            if maxlen is not None and maxlen > 0 and T > maxlen + 1:
                 t = random.randrange(T - maxlen - 1)  # Include next state after final "maxlen" state
                 return mem[t:t + maxlen + 1]
             else:
