@@ -9,9 +9,7 @@ from evaluator import Evaluator
 from rdpg import RDPG
 from util import *
 
-
-if __name__ == "__main__":
-
+def parse_args():
     parser = argparse.ArgumentParser(description='PyTorch on TORCS with Multi-modal')
 
     parser.add_argument('--mode', default='train', type=str, help='support option: train/test')
@@ -41,6 +39,12 @@ if __name__ == "__main__":
     parser.add_argument('--checkpoint', default="checkpoints", type=str, help='Checkpoint path')
 
     args = parser.parse_args()
+
+    return args
+
+if __name__ == "__main__":
+
+    args = parse_args()
 
     # env = NormalizedEnv(gym.make(args.env))
     env = gym.make(args.env)

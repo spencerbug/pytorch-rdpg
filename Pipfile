@@ -16,6 +16,7 @@ torch = "*"
 urllib3 = "*"
 PyYAML = "*"
 pygame = "*"
+pytest = "*"
 
 [dev-packages]
 

@@ -158,11 +158,12 @@ class RDPG(object):
             # update per trajectory
             self.agent.critic.zero_grad()
             value_loss.backward()
-            self.critic_optim.step()
 
             self.agent.actor.zero_grad()
             policy_loss = policy_loss.mean()
             policy_loss.backward()
+            
+            self.critic_optim.step()
             self.actor_optim.step()
 
 
